@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Panel Schedule Builder</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="header">
+        <div>
+          <img class="logo" src="/static/logo.svg" alt="Panel Schedule Builder logo" />
+          <h1>Panel Schedule Builder</h1>
+          <p>Enter breaker descriptions for up to 40 slots (20 per side). Print for a clean schedule.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <form method="post" class="form" enctype="multipart/form-data">
+          {% if not panel_size_selected %}
+          <div class="form-row">
+            <label for="panel_size">Choose panel size to begin</label>
+            <select id="panel_size" name="panel_size">
+              {% for size in range(8, 42, 2) %}
+              <option value="{{ size }}">{{ size }} spaces</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="actions top-actions">
+            <button type="submit">Start</button>
+          </div>
+          {% else %}
+          <div class="actions top-actions">
+            <button type="submit">Generate schedule</button>
+            <button type="submit" class="secondary" formaction="/export">Export XML</button>
+            <label class="import-label">
+              <span>Import XML</span>
+              <input type="file" name="schedule_file" accept=".xml" />
+            </label>
+            <button type="submit" class="secondary" formaction="/import">Load</button>
+            <button type="button" class="secondary" onclick="window.print()">Print</button>
+          </div>
+          {% if show_preview_hint %}
+          <a class="preview-hint" href="#schedule-preview">Preview below ↓</a>
+          {% endif %}
+          <input type="hidden" name="change_size" value="0" />
+          <input type="hidden" name="prev_size" value="{{ panel_size }}" />
+          <div class="form-row">
+            <label for="title">Panel name</label>
+            <input id="title" name="title" type="text" placeholder="Panel A" value="{{ title }}" />
+          </div>
+          <div class="form-row">
+            <label for="panel_size">Panel size</label>
+            <select id="panel_size" name="panel_size">
+              {% for size in range(8, 42, 2) %}
+              <option value="{{ size }}" {% if size == panel_size %}selected{% endif %}>
+                {{ size }} spaces
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="grid">
+            <div class="column">
+              <h2>Left side (odd slots)</h2>
+              <div class="slot-list">
+                {% for number, value in left %}
+                <div class="slot">
+                  <span class="slot-number">{{ number }}</span>
+                  <div class="slot-inputs">
+                    <input
+                      name="slot_{{ number }}_a"
+                      type="text"
+                      placeholder="Breaker {{ number }}"
+                      value="{{ value.a }}"
+                    />
+                    <input
+                      name="slot_{{ number }}_b"
+                      type="text"
+                      placeholder="Tandem {{ number }}"
+                      value="{{ value.b }}"
+                    />
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="column">
+              <h2>Right side (even slots)</h2>
+              <div class="slot-list">
+                {% for number, value in right %}
+                <div class="slot">
+                  <span class="slot-number">{{ number }}</span>
+                  <div class="slot-inputs">
+                    <input
+                      name="slot_{{ number }}_a"
+                      type="text"
+                      placeholder="Breaker {{ number }}"
+                      value="{{ value.a }}"
+                    />
+                    <input
+                      name="slot_{{ number }}_b"
+                      type="text"
+                      placeholder="Tandem {{ number }}"
+                      value="{{ value.b }}"
+                    />
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </form>
+        {% endif %}
+      </section>
+
+      {% if panel_size_selected %}
+      <section class="schedule" id="schedule-preview">
+        <div class="schedule-header">
+          <h2>Panel Schedule</h2>
+          <div class="panel-name">{{ title or "Panel name" }}</div>
+        </div>
+        <div class="schedule-grid">
+          <div class="schedule-column">
+            <div class="schedule-row header-row">
+              <div>Slot</div>
+              <div>Description</div>
+            </div>
+            {% for number, value in left %}
+            <div class="schedule-row">
+              <div class="schedule-number">{{ number }}</div>
+              <div class="schedule-desc {% if value.b %}has-tandem{% else %}single{% endif %}">
+                <div class="schedule-primary">{{ value.a }}</div>
+                {% if value.b %}
+                <div class="schedule-divider"></div>
+                {% endif %}
+                <div class="schedule-tandem">{{ value.b }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="schedule-column">
+            <div class="schedule-row header-row">
+              <div>Slot</div>
+              <div>Description</div>
+            </div>
+            {% for number, value in right %}
+            <div class="schedule-row">
+              <div class="schedule-number">{{ number }}</div>
+              <div class="schedule-desc {% if value.b %}has-tandem{% else %}single{% endif %}">
+                <div class="schedule-primary">{{ value.a }}</div>
+                {% if value.b %}
+                <div class="schedule-divider"></div>
+                {% endif %}
+                <div class="schedule-tandem">{{ value.b }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+      {% endif %}
+    </main>
+    {% if panel_size_selected %}
+    <script>
+      const sizeSelect = document.getElementById("panel_size");
+      const changeInput = document.querySelector("input[name=\"change_size\"]");
+      if (sizeSelect && changeInput) {
+        sizeSelect.addEventListener("change", () => {
+          changeInput.value = "1";
+          sizeSelect.form.submit();
+        });
+      }
+    </script>
+    {% endif %}
+  </body>
+</html>
